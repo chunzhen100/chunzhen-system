@@ -1,0 +1,23 @@
+###
+# 淳珍100会员管理系统
+# Render.com 部署配置
+###
+
+services:
+  - type: web
+    name: chunzhen100
+    runtime: node
+    repo: https://gitee.com/wang-huifu/chunzhen-backup
+    plan: free
+    region: singapore
+    buildCommand: npm install --loglevel=error
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        value: chunzhen100_secret_key_2024
+    healthCheckPath: /api/health
+    autoDeploy: false

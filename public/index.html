@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>淳珍100会员管理系统</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background:#f5f6fa; color:#333; min-height:100vh; }
+.container { max-width:1200px; margin:0 auto; padding:16px; }
+
+/* Loading */
+.loading { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; }
+.loading .spinner { width:40px; height:40px; border:4px solid #e0e0e0; border-top-color:#22a6b3; border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading p { margin-top:16px; color:#666; font-size:14px; }
+
+/* Login */
+.login-page { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+.login-box { background:white; padding:40px 32px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,.1); width:100%; max-width:380px; text-align:center; }
+.login-box h1 { font-size:22px; color:#22a6b3; margin-bottom:6px; }
+.login-box p { color:#999; font-size:13px; margin-bottom:24px; }
+.login-box input { width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:8px; font-size:15px; margin-bottom:14px; transition:border .2s; }
+.login-box input:focus { outline:none; border-color:#22a6b3; box-shadow:0 0 0 3px rgba(34,166,179,.1); }
+.login-box button { width:100%; padding:12px; background:#22a6b3; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; transition:background .2s; }
+.login-box button:hover { background:#1b8a96; }
+.login-box .error { color:#e74c3c; font-size:13px; margin-top:10px; }
+
+/* Header */
+.header { background:white; box-shadow:0 1px 4px rgba(0,0,0,.08); position:sticky; top:0; z-index:100; }
+.header .container { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+.header h1 { font-size:18px; color:#22a6b3; }
+.header .user-info { display:flex; align-items:center; gap:12px; font-size:13px; color:#666; }
+.header .user-info .role-badge { padding:2px 8px; border-radius:4px; font-size:11px; background:#e8f8f5; color:#22a6b3; }
+.header .logout-btn { cursor:pointer; color:#e74c3c; font-size:13px; }
+.header .logout-btn:hover { text-decoration:underline; }
+
+/* Navigation */
+.nav { background:white; margin:12px 0; border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.nav-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px,1fr)); gap:1px; background:#eee; }
+.nav-item { background:white; padding:14px 8px; text-align:center; cursor:pointer; transition:all .2s; }
+.nav-item:hover { background:#f0fafa; }
+.nav-item.active { background:#22a6b3; color:white; }
+.nav-item .icon { font-size:22px; margin-bottom:4px; }
+.nav-item .label { font-size:12px; }
+
+/* Card */
+.card { background:white; border-radius:10px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.card h3 { font-size:15px; color:#333; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
+
+/* Table */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th, td { padding:10px 8px; text-align:left; border-bottom:1px solid #f0f0f0; }
+th { background:#fafafa; font-weight:600; color:#555; white-space:nowrap; }
+tr:hover td { background:#fafcff; }
+
+/* Form */
+.form-group { margin-bottom:12px; }
+.form-group label { display:block; font-size:13px; color:#555; margin-bottom:4px; font-weight:500; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
+.form-group input:focus, .form-group select:focus { outline:none; border-color:#22a6b3; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* Buttons */
+.btn { padding:8px 16px; border:none; border-radius:6px; font-size:13px; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:4px; }
+.btn-primary { background:#22a6b3; color:white; }
+.btn-primary:hover { background:#1b8a96; }
+.btn-danger { background:#e74c3c; color:white; }
+.btn-danger:hover { background:#c0392b; }
+.btn-warning { background:#f39c12; color:white; }
+.btn-warning:hover { background:#d68910; }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-xs { padding:3px 8px; font-size:11px; }
+.btn-ghost { background:transparent; color:#22a6b3; }
+.btn-ghost:hover { background:#f0fafa; }
+
+/* Modal */
+.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); z-index:500; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:white; border-radius:12px; width:100%; max-width:500px; max-height:80vh; overflow-y:auto; padding:20px; }
+.modal h3 { font-size:16px; margin-bottom:14px; }
+.modal .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+/* Status badges */
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+.badge-green { background:#d5f5e3; color:#27ae60; }
+.badge-red { background:#fadbd8; color:#e74c3c; }
+.badge-yellow { background:#fdebd0; color:#e67e22; }
+.badge-blue { background:#d6eaf8; color:#2980b9; }
+
+/* Stats */
+.stats { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+.stat-card { background:white; border-radius:8px; padding:14px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.stat-card .num { font-size:24px; font-weight:700; color:#22a6b3; }
+.stat-card .label { font-size:12px; color:#888; margin-top:2px; }
+
+/* Stock progress bar */
+.progress-bar { height:6px; background:#eee; border-radius:3px; margin:4px 0; overflow:hidden; }
+.progress-bar .fill { height:100%; border-radius:3px; transition:width .3s; }
+.progress-bar .fill.green { background:#27ae60; }
+.progress-bar .fill.yellow { background:#f39c12; }
+.progress-bar .fill.red { background:#e74c3c; }
+
+/* Responsive */
+@media (max-width:600px) {
+  .container { padding:10px; }
+  .form-row { grid-template-columns:1fr; }
+  .nav-grid { grid-template-columns:repeat(4,1fr); }
+  .nav-item { padding:10px 4px; }
+  .nav-item .icon { font-size:18px; }
+  .nav-item .label { font-size:10px; }
+  .stats { grid-template-columns:repeat(2,1fr); }
+  .header h1 { font-size:15px; }
+}
+
+/* Section visibility */
+.section { display:none; }
+.section.active { display:block; }
+
+/* Toast */
+.toast { position:fixed; top:20px; right:20px; z-index:999; padding:12px 20px; border-radius:8px; color:white; font-size:14px; animation:slideIn .3s; max-width:350px; }
+.toast.success { background:#27ae60; }
+.toast.error { background:#e74c3c; }
+.toast.info { background:#2980b9; }
+@keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+/* Filter bar */
+.filter-bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.filter-bar input, .filter-bar select { padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; }
+
+/* Toolbar (add btn area) */
+.toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+
+/* Signature */
+.sig-area { border:1px dashed #ccc; border-radius:6px; padding:8px; min-height:80px; cursor:crosshair; }
+</style>
+</head>
+<body>
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>正在加载系统...</p>
+</div>
+
+<!-- Login Page -->
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <h1>淳珍100</h1>
+    <p>会员管理系统</p>
+    <input type="text" id="loginUsername" placeholder="用户名" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="密码" autocomplete="current-password">
+    <button onclick="login()">登 录</button>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="container">
+      <h1>淳珍100会员管理系统</h1>
+      <div class="user-info">
+        <span id="currentUser"></span>
+        <span class="role-badge" id="roleBadge"></span>
+        <span class="logout-btn" onclick="logout()">退出</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Navigation -->
+    <div class="nav">
+      <div class="nav-grid">
+        <div class="nav-item active" data-section="dashboard" onclick="switchSection('dashboard')"><div class="icon">📊</div><div class="label">总览</div></div>
+        <div class="nav-item" data-section="customers" onclick="switchSection('customers')"><div class="icon">👥</div><div class="label">客户</div></div>
+        <div class="nav-item" data-section="orders" onclick="switchSection('orders')"><div class="icon">📋</div><div class="label">订单</div></div>
+        <div class="nav-item" data-section="pickups" onclick="switchSection('pickups')"><div class="icon">📦</div><div class="label">领用</div></div>
+        <div class="nav-item" data-section="products" onclick="switchSection('products')"><div class="icon">🏷️</div><div class="label">产品</div></div>
+        <div class="nav-item" data-section="stock" onclick="switchSection('stock')"><div class="icon">📦</div><div class="label">库存</div></div>
+        <div class="nav-item" data-section="sales" onclick="switchSection('sales')"><div class="icon">💰</div><div class="label">销售</div></div>
+        <div class="nav-item" data-section="logs" onclick="switchSection('logs')"><div class="icon">📝</div><div class="label">日志</div></div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="section active" id="section-dashboard">
+      <div class="card"><h3>数据总览</h3>
+        <div class="stats" id="dashboardStats"></div>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <div class="section" id="section-customers">
+      <div class="toolbar">
+        <h3>客户管理</h3>
+        <button class="btn btn-primary" onclick="showCustomerModal()">+ 新增客户</button>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <input type="text" placeholder="搜索客户姓名..." id="customerSearch" oninput="filterCustomers()">
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>姓名</th><th>电话</th><th>地址</th><th>备注</th><th>操作</th></tr></thead><tbody id="customerTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="section" id="section-orders">
+      <div class="toolbar">
+        <h3>订单管理</h3>
+        <button class="btn btn-primary" onclick="showOrderModal()">+ 新增订单</button>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <input type="text" placeholder="搜索订单/客户..." id="orderSearch" oninput="filterOrders()">
+          <select id="orderCustomerFilter" onchange="filterOrders()"><option value="">全部客户</option></select>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>客户</th><th>订单名称</th><th>产品</th><th>数量</th><th>已领</th><th>金额</th><th>已付</th><th>状态</th><th>操作</th></tr></thead><tbody id="orderTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Pickups -->
+    <div class="section" id="section-pickups">
+      <div class="toolbar">
+        <h3>领用记录</h3>
+        <button class="btn btn-primary" onclick="showPickupModal()">+ 新增领用</button>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <select id="pickupCustomerFilter" onchange="filterPickups()"><option value="">全部客户</option></select>
+          <input type="date" id="pickupDateFilter" onchange="filterPickups()">
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>客户</th><th>产品</th><th>数量</th><th>日期</th><th>订单</th><th>操作</th></tr></thead><tbody id="pickupTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Products -->
+    <div class="section" id="section-products">
+      <div class="toolbar">
+        <h3>产品管理</h3>
+        <button class="btn btn-primary" onclick="showProductModal()">+ 新增产品</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table><thead><tr><th>名称</th><th>每盒建议天数</th><th>操作</th></tr></thead><tbody id="productTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Stock -->
+    <div class="section" id="section-stock">
+      <div class="toolbar">
+        <h3>库存管理</h3>
+        <button class="btn btn-primary" onclick="showStockModal()">+ 入库</button>
+      </div>
+      <div class="card">
+        <h3>库存总览</h3>
+        <div class="table-wrap"><table><thead><tr><th>产品</th><th>入库总量</th><th>已领取</th><th>实际库存</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+      </div>
+      <div class="card">
+        <h3>入库记录</h3>
+        <div class="table-wrap"><table><thead><tr><th>产品</th><th>数量</th><th>日期</th><th>备注</th></tr></thead><tbody id="stockInTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Sales -->
+    <div class="section" id="section-sales">
+      <div class="toolbar">
+        <h3>销售管理</h3>
+        <button class="btn btn-primary" onclick="showSaleModal()">+ 新增销售</button>
+        <button class="btn btn-warning" onclick="exportSales()">📥 导出</button>
+      </div>
+      <div class="card">
+        <div class="stats" id="salesStats"></div>
+        <div class="table-wrap"><table><thead><tr><th>产品</th><th>数量</th><th>金额</th><th>支付方式</th><th>日期</th><th>操作</th></tr></thead><tbody id="saleTableBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="section" id="section-logs">
+      <div class="toolbar">
+        <h3>操作日志</h3>
+        <button class="btn btn-warning" onclick="exportLogs()">📥 导出</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table><thead><tr><th>时间</th><th>用户</th><th>操作</th><th>详情</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent">
+    <h3 id="modalTitle">标题</h3>
+    <div id="modalBody"></div>
+    <div class="actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+// ==================== Configuration ====================
+const API_BASE = window.location.origin + '/api';
+
+// ==================== State ====================
+let token = localStorage.getItem('token') || '';
+let currentUser = null;
+let allData = { customers: [], orders: [], pickups: [], products: [], stockIns: [], sales: [], logs: [] };
+
+// ==================== HTTP Helper ====================
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  
+  try {
+    const res = await fetch(`${API_BASE}${path}`, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '请求失败');
+    return data;
+  } catch (err) {
+    if (err.message.includes('401') || err.message.includes('登录')) {
+      logout();
+    }
+    throw err;
+  }
+}
+
+// ==================== Toast ====================
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// ==================== Modal ====================
+function showModal(title, bodyHtml, actionsHtml) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalActions').innerHTML = actionsHtml;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+document.getElementById('modalOverlay').onclick = e => {
+  if (e.target === e.currentTarget) closeModal();
+};
+
+// ==================== Auth ====================
+async function login() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+  
+  if (!username || !password) { errEl.textContent = '请输入用户名和密码'; return; }
+  errEl.textContent = '';
+  
+  try {
+    const res = await api('POST', '/auth/login', { username, password });
+    token = res.token;
+    currentUser = res.user;
+    localStorage.setItem('token', token);
+    enterApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+function logout() {
+  token = '';
+  currentUser = null;
+  localStorage.removeItem('token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loading').style.display = 'none';
+}
+
+function enterApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  
+  document.getElementById('currentUser').textContent = currentUser.display_name;
+  const badge = document.getElementById('roleBadge');
+  if (currentUser.role === 'super_admin') badge.textContent = '超级管理员';
+  else if (currentUser.role === 'admin') badge.textContent = '管理员';
+  else badge.textContent = '用户';
+  
+  loadAll();
+}
+
+// ==================== Navigation ====================
+function switchSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  document.querySelector(`.nav-item[data-section="${name}"]`).classList.add('active');
+  loadSection(name);
+}
+
+// ==================== Load All ====================
+async function loadAll() {
+  try {
+    const [customers, products, orders, pickups, stockIns, sales, logs] = await Promise.all([
+      api('GET', '/customers'),
+      api('GET', '/products'),
+      api('GET', '/orders'),
+      api('GET', '/pickups'),
+      api('GET', '/stock/in'),
+      api('GET', '/sales'),
+      api('GET', '/logs')
+    ]);
+    
+    allData = { customers, products, orders, pickups, stockIns, sales, logs };
+    
+    // Populate filter dropdowns
+    populateFilters();
+    
+    // Load dashboard
+    loadDashboard();
+    
+    // Load all sections
+    loadCustomers();
+    loadOrders();
+    loadPickups();
+    loadProducts();
+    loadStock();
+    loadSales();
+    loadLogs();
+  } catch (err) {
+    toast('加载数据失败: ' + err.message, 'error');
+  }
+}
+
+function loadSection(name) {
+  switch(name) {
+    case 'dashboard': loadDashboard(); break;
+    case 'customers': loadCustomers(); break;
+    case 'orders': loadOrders(); break;
+    case 'pickups': loadPickups(); break;
+    case 'products': loadProducts(); break;
+    case 'stock': loadStock(); break;
+    case 'sales': loadSales(); break;
+    case 'logs': loadLogs(); break;
+  }
+}
+
+// ==================== Populate Filters ====================
+function populateFilters() {
+  // Customer filter in orders
+  const orderFilter = document.getElementById('orderCustomerFilter');
+  orderFilter.innerHTML = '<option value="">全部客户</option>';
+  allData.customers.forEach(c => {
+    orderFilter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+  
+  // Customer filter in pickups
+  const pickupFilter = document.getElementById('pickupCustomerFilter');
+  pickupFilter.innerHTML = '<option value="">全部客户</option>';
+  allData.customers.forEach(c => {
+    pickupFilter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+}
+
+// ==================== Dashboard ====================
+async function loadDashboard() {
+  const stats = document.getElementById('dashboardStats');
+  const totalCustomers = allData.customers.length;
+  const totalOrders = allData.orders.length;
+  const totalSales = allData.sales.reduce((s, x) => s + x.price, 0);
+  const totalPickups = allData.pickups.reduce((s, x) => s + x.quantity, 0);
+  
+  stats.innerHTML = `
+    <div class="stat-card"><div class="num">${totalCustomers}</div><div class="label">客户总数</div></div>
+    <div class="stat-card"><div class="num">${totalOrders}</div><div class="label">订单总数</div></div>
+    <div class="stat-card"><div class="num">¥${totalSales.toFixed(0)}</div><div class="label">总销售额</div></div>
+    <div class="stat-card"><div class="num">${totalPickups}</div><div class="label">领用件数</div></div>
+    <div class="stat-card"><div class="num">${allData.stockIns.length}</div><div class="label">入库次数</div></div>
+    <div class="stat-card"><div class="num">${currentUser.display_name}</div><div class="label">当前用户</div></div>
+  `;
+}
+
+// ==================== Customers ====================
+function loadCustomers() {
+  const tbody = document.getElementById('customerTableBody');
+  const search = document.getElementById('customerSearch').value.toLowerCase();
+  const filtered = allData.customers.filter(c => c.name.toLowerCase().includes(search));
+  
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.phone || '-'}</td>
+      <td>${c.address || '-'}</td>
+      <td>${c.notes || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-ghost" onclick="editCustomer(${c.id})">✏️</button>
+        ${currentUser.role === 'super_admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">🗑️</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterCustomers() { loadCustomers(); }
+
+function showCustomerModal(data) {
+  const isEdit = !!data;
+  const title = isEdit ? '编辑客户' : '新增客户';
+  const bodyHtml = `
+    <input type="hidden" id="customerId" value="${data ? data.id : ''}">
+    <div class="form-group"><label>姓名 *</label><input type="text" id="customerName" value="${data ? data.name : ''}"></div>
+    <div class="form-group"><label>电话</label><input type="text" id="customerPhone" value="${data ? (data.phone || '') : ''}"></div>
+    <div class="form-group"><label>地址</label><input type="text" id="customerAddress" value="${data ? (data.address || '') : ''}"></div>
+    <div class="form-group"><label>备注</label><textarea id="customerNotes" rows="2">${data ? (data.notes || '') : ''}</textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="${isEdit ? 'saveCustomer(' + data.id + ')' : 'saveCustomer()'}">保存</button>
+  `;
+  showModal(title, bodyHtml, actionsHtml);
+}
+
+async function saveCustomer(id) {
+  const name = document.getElementById('customerName').value.trim();
+  if (!name) { toast('请填写客户姓名', 'error'); return; }
+  
+  const data = {
+    name,
+    phone: document.getElementById('customerPhone').value.trim(),
+    address: document.getElementById('customerAddress').value.trim(),
+    notes: document.getElementById('customerNotes').value.trim()
+  };
+  
+  try {
+    if (id) {
+      await api('PUT', `/customers/${id}`, data);
+      toast('客户已更新');
+    } else {
+      await api('POST', '/customers', data);
+      toast('客户已添加');
+    }
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deleteCustomer(id) {
+  if (!confirm('确定删除该客户？（相关订单和领用记录也会被删除）')) return;
+  try {
+    await api('DELETE', `/customers/${id}`);
+    toast('客户已删除');
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function editCustomer(id) {
+  const data = allData.customers.find(c => c.id === id);
+  if (data) showCustomerModal(data);
+}
+
+// ==================== Orders ====================
+function loadOrders() {
+  const tbody = document.getElementById('orderTableBody');
+  const search = document.getElementById('orderSearch').value.toLowerCase();
+  const customerFilter = document.getElementById('orderCustomerFilter').value;
+  
+  let filtered = allData.orders;
+  if (search) filtered = filtered.filter(o => 
+    (o.order_name || '').toLowerCase().includes(search) || 
+    (o.customer_name || '').toLowerCase().includes(search)
+  );
+  if (customerFilter) filtered = filtered.filter(o => o.customer_id == customerFilter);
+  
+  tbody.innerHTML = filtered.map(o => {
+    const picked = allData.pickups.filter(p => p.order_id === o.id).reduce((s, p) => s + p.quantity, 0);
+    return `<tr>
+      <td>${o.customer_name || '未知'}</td>
+      <td>${o.order_name}</td>
+      <td>${o.product_name || '-'}</td>
+      <td>${o.quantity}</td>
+      <td><span class="badge badge-blue">${picked}</span>/${o.quantity}</td>
+      <td>¥${(o.price || 0).toFixed(0)}</td>
+      <td>¥${(o.paid || 0).toFixed(0)}</td>
+      <td><span class="badge ${o.status === 'active' ? 'badge-green' : 'badge-yellow'}">${o.status === 'active' ? '进行中' : '已完成'}</span></td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="editOrder(${o.id})">✏️</button>
+        ${currentUser.role === 'super_admin' ? `<button class="btn btn-xs btn-danger" onclick="deleteOrder(${o.id})">🗑️</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterOrders() { loadOrders(); }
+
+function showOrderModal(data) {
+  const isEdit = !!data;
+  const customerOpts = allData.customers.map(c => 
+    `<option value="${c.id}" ${data && data.customer_id === c.id ? 'selected' : ''}>${c.name}</option>`
+  ).join('');
+  
+  const bodyHtml = `
+    <input type="hidden" id="orderId" value="${data ? data.id : ''}">
+    <div class="form-group"><label>客户 *</label><select id="orderCustomer">${customerOpts}</select></div>
+    <div class="form-group"><label>订单名称 *</label><input type="text" id="orderName" value="${data ? data.order_name : ''}"></div>
+    <div class="form-group"><label>产品名称</label><input type="text" id="orderProduct" value="${data ? (data.product_name || '') : ''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>数量</label><input type="number" id="orderQuantity" value="${data ? data.quantity : 1}"></div>
+      <div class="form-group"><label>金额 (¥)</label><input type="number" id="orderPrice" value="${data ? data.price : 0}"></div>
+    </div>
+    <div class="form-group"><label>已付 (¥)</label><input type="number" id="orderPaid" value="${data ? data.paid : 0}"></div>
+    <div class="form-group"><label>备注</label><textarea id="orderNotes" rows="2">${data ? (data.notes || '') : ''}</textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="${isEdit ? 'saveOrder(' + data.id + ')' : 'saveOrder()'}">保存</button>
+  `;
+  showModal(isEdit ? '编辑订单' : '新增订单', bodyHtml, actionsHtml);
+}
+
+async function saveOrder(id) {
+  const data = {
+    customer_id: parseInt(document.getElementById('orderCustomer').value),
+    order_name: document.getElementById('orderName').value.trim(),
+    product_name: document.getElementById('orderProduct').value.trim(),
+    quantity: parseInt(document.getElementById('orderQuantity').value) || 1,
+    price: parseFloat(document.getElementById('orderPrice').value) || 0,
+    paid: parseFloat(document.getElementById('orderPaid').value) || 0,
+    notes: document.getElementById('orderNotes').value.trim()
+  };
+  
+  if (!data.order_name) { toast('请填写订单名称', 'error'); return; }
+  
+  try {
+    if (id) {
+      await api('PUT', `/orders/${id}`, data);
+      toast('订单已更新');
+    } else {
+      await api('POST', '/orders', data);
+      toast('订单已创建');
+    }
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deleteOrder(id) {
+  if (!confirm('确定删除该订单？')) return;
+  try {
+    await api('DELETE', `/orders/${id}`);
+    toast('订单已删除');
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function editOrder(id) {
+  const data = allData.orders.find(o => o.id === id);
+  if (data) showOrderModal(data);
+}
+
+// ==================== Pickups ====================
+function loadPickups() {
+  const tbody = document.getElementById('pickupTableBody');
+  const customerFilter = document.getElementById('pickupCustomerFilter').value;
+  const dateFilter = document.getElementById('pickupDateFilter').value;
+  
+  let filtered = allData.pickups;
+  if (customerFilter) filtered = filtered.filter(p => p.customer_id == customerFilter);
+  if (dateFilter) filtered = filtered.filter(p => p.pickup_date === dateFilter);
+  
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td>${p.customer_name || '未知'}</td>
+      <td>${p.product_name}</td>
+      <td>${p.quantity}</td>
+      <td>${p.pickup_date || p.created_at?.slice(0,10)}</td>
+      <td>${p.order_name || '-'}</td>
+      <td>
+        <button class="btn btn-xs btn-danger" onclick="deletePickup(${p.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterPickups() { loadPickups(); }
+
+function showPickupModal() {
+  const customerOpts = allData.customers.map(c => 
+    `<option value="${c.id}">${c.name}</option>`
+  ).join('');
+  const productOpts = allData.products.map(p => 
+    `<option value="${p.name}">${p.name}</option>`
+  ).join('');
+  
+  const bodyHtml = `
+    <div class="form-group"><label>客户 *</label><select id="pickupCustomer">${customerOpts}</select></div>
+    <div class="form-group"><label>产品 *</label><select id="pickupProduct">${productOpts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>数量</label><input type="number" id="pickupQuantity" value="1"></div>
+      <div class="form-group"><label>日期</label><input type="date" id="pickupDate" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="form-group"><label>备注</label><textarea id="pickupNotes" rows="2"></textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="savePickup()">保存</button>
+  `;
+  showModal('新增领用记录', bodyHtml, actionsHtml);
+}
+
+async function savePickup() {
+  const data = {
+    customer_id: parseInt(document.getElementById('pickupCustomer').value),
+    product_name: document.getElementById('pickupProduct').value,
+    quantity: parseInt(document.getElementById('pickupQuantity').value) || 1,
+    pickup_date: document.getElementById('pickupDate').value,
+    notes: document.getElementById('pickupNotes').value.trim()
+  };
+  
+  try {
+    await api('POST', '/pickups', data);
+    toast('领用记录已添加');
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deletePickup(id) {
+  if (!confirm('确定删除该领用记录？')) return;
+  try {
+    await api('DELETE', `/pickups/${id}`);
+    toast('领用记录已删除');
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ==================== Products ====================
+function loadProducts() {
+  const tbody = document.getElementById('productTableBody');
+  tbody.innerHTML = allData.products.map(p => `
+    <tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${p.days_per_box || 30} 天</td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="editProduct(${p.id})">✏️</button>
+        ${currentUser.role === 'super_admin' ? `<button class="btn btn-xs btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showProductModal(data) {
+  const isEdit = !!data;
+  const bodyHtml = `
+    <input type="hidden" id="productId" value="${data ? data.id : ''}">
+    <div class="form-group"><label>产品名称 *</label><input type="text" id="productName" value="${data ? data.name : ''}"></div>
+    <div class="form-group"><label>每盒建议天数</label><input type="number" id="productDays" value="${data ? (data.days_per_box || 30) : 30}"></div>
+    <div class="form-group"><label>备注</label><textarea id="productNotes" rows="2">${data ? (data.notes || '') : ''}</textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="${isEdit ? 'saveProduct(' + data.id + ')' : 'saveProduct()'}">保存</button>
+  `;
+  showModal(isEdit ? '编辑产品' : '新增产品', bodyHtml, actionsHtml);
+}
+
+async function saveProduct(id) {
+  const name = document.getElementById('productName').value.trim();
+  if (!name) { toast('请填写产品名称', 'error'); return; }
+  
+  const data = {
+    name,
+    days_per_box: parseInt(document.getElementById('productDays').value) || 30,
+    notes: document.getElementById('productNotes').value.trim()
+  };
+  
+  try {
+    if (id) {
+      await api('PUT', `/products/${id}`, data);
+      toast('产品已更新');
+    } else {
+      await api('POST', '/products', data);
+      toast('产品已添加');
+    }
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function editProduct(id) {
+  const data = allData.products.find(p => p.id === id);
+  if (data) showProductModal(data);
+}
+
+async function deleteProduct(id) {
+  if (!confirm('确定删除该产品？')) return;
+  try {
+    await api('DELETE', `/products/${id}`);
+    toast('产品已删除');
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ==================== Stock ====================
+async function loadStock() {
+  // Stock overview
+  const stockBody = document.getElementById('stockTableBody');
+  const stockInBody = document.getElementById('stockInTableBody');
+  
+  try {
+    const stockData = await api('GET', '/stock');
+    stockBody.innerHTML = stockData.map(s => {
+      const pct = s.stock_in_total > 0 ? Math.round((s.picked_total / s.stock_in_total) * 100) : 0;
+      const barColor = pct >= 80 ? 'red' : pct >= 50 ? 'yellow' : 'green';
+      return `<tr>
+        <td><strong>${s.product_name}</strong></td>
+        <td>${s.stock_in_total}</td>
+        <td>${s.picked_total}</td>
+        <td>
+          <strong>${s.real_stock}</strong>
+          <div class="progress-bar"><div class="fill ${barColor}" style="width:${pct}%"></div></div>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    stockBody.innerHTML = '<tr><td colspan="4">加载失败</td></tr>';
+  }
+  
+  // Stock in records
+  stockInBody.innerHTML = allData.stockIns.map(s => `
+    <tr>
+      <td>${s.product_name}</td>
+      <td>${s.quantity}</td>
+      <td>${s.stock_date || s.created_at?.slice(0,10)}</td>
+      <td>${s.notes || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function showStockModal() {
+  const productOpts = allData.products.map(p => 
+    `<option value="${p.name}">${p.name}</option>`
+  ).join('');
+  
+  const bodyHtml = `
+    <div class="form-group"><label>产品 *</label><select id="stockProduct">${productOpts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>入库数量 *</label><input type="number" id="stockQuantity" value="1"></div>
+      <div class="form-group"><label>日期</label><input type="date" id="stockDate" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="form-group"><label>备注</label><textarea id="stockNotes" rows="2"></textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="saveStock()">入库</button>
+  `;
+  showModal('入库操作', bodyHtml, actionsHtml);
+}
+
+async function saveStock() {
+  const data = {
+    product_name: document.getElementById('stockProduct').value,
+    quantity: parseInt(document.getElementById('stockQuantity').value) || 1,
+    stock_date: document.getElementById('stockDate').value,
+    notes: document.getElementById('stockNotes').value.trim()
+  };
+  
+  try {
+    await api('POST', '/stock/in', data);
+    toast('入库成功');
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ==================== Sales ====================
+async function loadSales() {
+  const tbody = document.getElementById('saleTableBody');
+  const stats = document.getElementById('salesStats');
+  
+  tbody.innerHTML = allData.sales.map(s => `
+    <tr>
+      <td>${s.product_name}</td>
+      <td>${s.quantity}</td>
+      <td>¥${(s.price || 0).toFixed(0)}</td>
+      <td>${s.payment_method || '现金'}</td>
+      <td>${s.sale_date || s.created_at?.slice(0,10)}</td>
+      <td>
+        <button class="btn btn-xs btn-danger" onclick="deleteSale(${s.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+  
+  const totalSales = allData.sales.reduce((s, x) => s + x.price, 0);
+  const totalQty = allData.sales.reduce((s, x) => s + x.quantity, 0);
+  stats.innerHTML = `
+    <div class="stat-card"><div class="num">${allData.sales.length}</div><div class="label">销售笔数</div></div>
+    <div class="stat-card"><div class="num">¥${totalSales.toFixed(0)}</div><div class="label">总金额</div></div>
+    <div class="stat-card"><div class="num">${totalQty}</div><div class="label">总数量</div></div>
+  `;
+}
+
+function showSaleModal() {
+  const productOpts = allData.products.map(p => 
+    `<option value="${p.name}">${p.name}</option>`
+  ).join('');
+  
+  const bodyHtml = `
+    <div class="form-group"><label>产品 *</label><select id="saleProduct">${productOpts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>数量 *</label><input type="number" id="saleQuantity" value="1"></div>
+      <div class="form-group"><label>金额 (¥) *</label><input type="number" id="salePrice" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>支付方式</label>
+        <select id="salePayment"><option value="现金">现金</option><option value="微信">微信</option><option value="支付宝">支付宝</option><option value="银行卡">银行卡</option></select>
+      </div>
+      <div class="form-group"><label>日期</label><input type="date" id="saleDate" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="form-group"><label>备注</label><textarea id="saleNotes" rows="2"></textarea></div>
+  `;
+  const actionsHtml = `
+    <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="saveSale()">保存</button>
+  `;
+  showModal('新增销售记录', bodyHtml, actionsHtml);
+}
+
+async function saveSale() {
+  const price = parseFloat(document.getElementById('salePrice').value);
+  if (!price) { toast('请填写金额', 'error'); return; }
+  
+  const data = {
+    product_name: document.getElementById('saleProduct').value,
+    quantity: parseInt(document.getElementById('saleQuantity').value) || 1,
+    price,
+    payment_method: document.getElementById('salePayment').value,
+    sale_date: document.getElementById('saleDate').value,
+    notes: document.getElementById('saleNotes').value.trim()
+  };
+  
+  try {
+    await api('POST', '/sales', data);
+    toast('销售记录已添加');
+    closeModal();
+    await loadAll();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deleteSale(id) {
+  // Sales deletion not implemented in backend yet, show alert
+  toast('删除功能暂未开放', 'error');
+}
+
+function exportSales() {
+  const csv = ['产品,数量,金额,支付方式,日期'];
+  allData.sales.forEach(s => {
+    csv.push(`${s.product_name},${s.quantity},${s.price || 0},${s.payment_method || '现金'},${s.sale_date || ''}`);
+  });
+  downloadCSV(csv.join('\n'), '销售记录.csv');
+}
+
+// ==================== Logs ====================
+function loadLogs() {
+  const tbody = document.getElementById('logTableBody');
+  tbody.innerHTML = allData.logs.map(l => `
+    <tr>
+      <td>${l.created_at || '-'}</td>
+      <td>${l.username || '-'}</td>
+      <td>${l.action || '-'}</td>
+      <td>${l.details || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function exportLogs() {
+  const csv = ['时间,用户,操作,详情'];
+  allData.logs.forEach(l => {
+    csv.push(`${l.created_at || ''},${l.username || ''},${l.action || ''},${(l.details || '').replace(/,/g, '，')}`);
+  });
+  downloadCSV(csv.join('\n'), '操作日志.csv');
+}
+
+// ==================== Utils ====================
+function downloadCSV(content, filename) {
+  const blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ==================== Init ====================
+(async function init() {
+  // Check if already logged in
+  if (token) {
+    try {
+      const res = await api('GET', '/auth/me');
+      currentUser = res.user;
+      enterApp();
+      return;
+    } catch (e) {
+      // Token expired, show login
+    }
+  }
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+})();
+</script>
+</body>
+</html>
